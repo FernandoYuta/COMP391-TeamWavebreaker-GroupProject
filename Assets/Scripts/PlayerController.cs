@@ -1,22 +1,30 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] LayerMask platLayer;
+    [SerializeField] GameObject slashVFX;
+    [SerializeField] GameObject slashVFXLeft;
+    [SerializeField] GameObject SlashSpawnerRight;
+    [SerializeField] GameObject SlashSpawnerLeft;
 
     public float playerSpeed = 2.5f;
     public float jumpHeight = 5.5f;
     public float jumpPushForce = -1f;
     public float jumpVertForce = 20f;
-    
+    bool facingRight = true;
+
     //public float slideSpeed = 0.1f;
 
 
     Rigidbody2D rbody;
     BoxCollider2D boxCollider2d;
     Transform playerPos;
+    PlayerAnimation playerAnimation;
+ 
 
     // Start is called before the first frame update
     void Start()
@@ -24,6 +32,7 @@ public class PlayerController : MonoBehaviour
         rbody = GetComponent<Rigidbody2D>();
         boxCollider2d = GetComponent<BoxCollider2D>();
         playerPos = GetComponent<Transform>();
+        playerAnimation = GetComponent<PlayerAnimation>();
         
     }
 
@@ -32,9 +41,28 @@ public class PlayerController : MonoBehaviour
     {
         float speedX = Input.GetAxis("Horizontal");
 
-        
+        if ((speedX > 0 && !facingRight) || (speedX < 0 && facingRight))
+        {
+            Flip();
+        }
 
-        if (IsPlayerOnRightWall())
+        if(speedX == 0)
+        {
+            playerAnimation.PlayerIdle(true);
+        }
+
+        if (speedX != 0 && rbody.velocity.y == 0)
+        {
+            playerAnimation.PlayerRun(true);
+        }
+
+        if (Input.GetAxis("Fire1") != 0)
+        {
+            playerAnimation.AttackAnim(true);
+
+        }
+
+        if (IsPlayerOnRightWall()|| IsPlayerOnLeftWall())
         {
             rbody.gravityScale = 0;
             rbody.velocity = new Vector2(speedX * playerSpeed, 0);
@@ -48,6 +76,8 @@ public class PlayerController : MonoBehaviour
 
         }
 
+
+
         if (Input.GetKeyDown(KeyCode.Space))
         {
             //rbody.velocity = new Vector2(speedX * playerSpeed, rbody.velocity.y);
@@ -56,6 +86,7 @@ public class PlayerController : MonoBehaviour
             if (IsPlayerOnGround())
             {
                 rbody.velocity = Vector2.up * jumpHeight;
+                playerAnimation.PlayerJump(true);
             }
             if (IsPlayerOnRightWall())
             {
@@ -69,10 +100,17 @@ public class PlayerController : MonoBehaviour
 
         }
 
-        Debug.Log(rbody.velocity);
+        //Debug.Log(rbody.velocity);
 
 
 
+    }
+    private void Flip()
+    {
+        facingRight = !facingRight;
+        Vector2 theScale = transform.localScale;
+        theScale.x *= -1;
+        transform.localScale = theScale;
     }
 
     private bool IsPlayerOnGround()
@@ -93,4 +131,22 @@ public class PlayerController : MonoBehaviour
         return raycastHit2D.collider != null;
     }
 
+    private bool IsPlayerOnLeftWall()
+    {
+        RaycastHit2D raycastHit2D = Physics2D.BoxCast(boxCollider2d.bounds.center, boxCollider2d.bounds.size, 0f, Vector2.left, 0.09f, platLayer);
+        return raycastHit2D.collider != null;
+    }
+
+
+    public void SpawnSlash()
+    {
+        if (facingRight)
+        {
+            GameObject obj = GameObject.Instantiate(slashVFX, SlashSpawnerRight.transform.position, SlashSpawnerRight.transform.rotation);
+        }
+        else if(!facingRight)
+        {
+            GameObject obj = GameObject.Instantiate(slashVFXLeft, SlashSpawnerRight.transform.position, slashVFXLeft.transform.rotation);
+        }
+    }
 }
